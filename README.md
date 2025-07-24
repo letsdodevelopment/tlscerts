@@ -57,16 +57,17 @@ Importants points are
 }
 ```
 
-## Patch this Secret using patch file
+## Step: 03
+
+Patch this Secret using patch file (patch-secret.yaml) inside the deployment hello-app
+
+`oc patch deployment hello-app --patch-file patch-secret.yaml`
 
 Few things I learnt
 
 - default path for the certificate (httpd) is /etc/httpd/tls/ and default certificate and keys are named as localhost.crt and localhost.key
 - You can change this, but I'm not there yet
-- review patch file especially volumes.secret.items. The path is where we define the name of the certificate and key.
-
-
-oc patch deployment hello-app --patch-file patch-secret.yaml
+- review patch file especially volumes.secret.items. The 'path' is where we define the name of the certificate and key.
 
 ### Test the right certificate is installed
 
@@ -82,26 +83,34 @@ issuer=CN=openshift-service-serving-signer@1742136952
 # Lets try with curl
 oc exec -it hello-app-5bbc66d77b-728x8 -- curl https://hello-app.tlscerts.svc:8443
 curl: (60) SSL certificate problem: self-signed certificate in certificate chain
-More details here: https://curl.se/docs/sslcerts.html
+## OutPut ###
+## More details here: https://curl.se/docs/sslcerts.html
 
-curl failed to verify the legitimacy of the server and therefore could not
-establish a secure connection to it. To learn more about this situation and
-how to fix it, please visit the web page mentioned above.
-command terminated with exit code 60
+## curl failed to verify the legitimacy of the server and therefore could not
+## establish a secure connection to it. To learn more about this situation and
+## how to fix it, please visit the web page mentioned above.
+## command terminated with exit code 60
+## OutPut ###
 ```
 
-## Install CA certificate in a client and test it.
+## Step: 04
 
-As the name is matching with the service, we are okay to go with the second steps.
+Install CA certificate in a client and test it.
+
+As the name(CN=) is matching with the Service, we are okay to go with the next steps.
 I have deployed another test pod e.g. another httpd server and uploaded ca-chain into it.
+It can be any image pod as long as you know where to copy the ca-chain
 
-### create a config map
+### Create a config map
 
 oc create configmap ca-bundle
 
-#### annotate config map 
+#### annotate config map
 
 oc annotate configmap ca-bundle service.beta.openshift.io/inject-cabundle=true
+
+`inject-cabundle` is something I must remember esp the word `bundle`. service.beta.openshift.io is same as explained earlier.
+
 
 #### Check the config map
 
@@ -116,7 +125,8 @@ oc get configmap ca-bundle -o json
     "kind": "ConfigMap",
     "metadata": {
         "annotations": {
-            "openshift.io/description": "Configmap is added/updated with a data item containing the CA signing bundle that can be used to verify service-serving certificates",
+            "openshift.io/description": "Configmap is added/updated with a data item containing the
+            CA signing bundle that can be used to verify service-serving certificates",
             "openshift.io/owning-component": "service-ca",
             "service.beta.openshift.io/inject-cabundle": "true"
         },
@@ -131,10 +141,10 @@ oc get configmap ca-bundle -o json
 
 Important fields are
 
-- name of the ca certificate is service-ca.crt
+- name of the ca certificate is service-ca.crt, which can be see just below "data" section.
 
-
-All we need is to add this information to the manifest file. I can as well create a patch file. But lets keep it simple. 
+All we need is to add this information to the manifest file in my case it is sampleapp.yaml. I can as well create a patch file. But lets keep it simple.
+Important sections are mentioned below.
 
 ### volumeMounts
 
@@ -142,12 +152,13 @@ Add volumeMounts information. The destination for copy ca bundle should be known
 
 ### volumes
 
-In this section, we have add config map information esp the thing under items. Here we need name of the key ie. service-ca.crt and name of the file should be mentioned in the path.
-and ensure the configmap name matches with you created earlier
+In this section, we have to add config map information esp the thing under items.
+Here we need name of the key ie. service-ca.crt and name of the file should be mentioned in the path.
+and ensure the configmap name matches with you created earlier.
 
-oc create -f sampleapp.yaml
+`oc create -f sampleapp.yaml`
 
-and then repeat the same command we did earlier but this time from sample-app and both the results should be successful i.e. without any self signed certificates warning message
+And then execute the same command we did earlier but this time from sample-app and both the results should be successful i.e. without any self signed certificates warning message
 
 ```shell
 
