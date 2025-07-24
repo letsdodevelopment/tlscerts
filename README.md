@@ -15,15 +15,23 @@ hello-app   ClusterIP   10.217.4.100   <none>        8443/TCP   19m   app=hello-
 
 ## Step: 02
 
-create a secret
+Create a Secret
 
-`oc annotate` is the main command, which I also now remember that i used to create cookie.
+`oc annotate` is the main command, which I also now remember that I used to create cookie.
 
 ```shell
+# here the assumption is, that name of the service is 'hello-app'
 
 oc annotate service hello-app service.beta.openshift.io/serving-cert-secret-name=hello-app-secret
 
 ```
+
+How to remember the annotation String?
+
+- Secret-name is simply to remember, what i will forget is serving-cert. So, it is not serving-ca but 'serving-cert-secret-name'
+- Service is as of today $(date) in beta. so is 'service.beta'
+
+
 
 ### Check the secret
 
@@ -32,7 +40,7 @@ Below is the JSON output and I'm trying to highlight that certificate is automat
 Importants points are
 
 - certificate is for 24 months valid for the domain hello-app.tlscerts.svc and it provided by service-ca
-- but our clients won't have this root CA certificate.
+- but our clients won't have this root CA certificate which is normally present in the browser.
 
 ```json
 // oc get secret hello-app-secret -o json | jq .metadata.annotations
